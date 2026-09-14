@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>德峰針織整合管理系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --border: #cbd5e1;
+
+            /* 頁籤主題色彩與漸層設定 */
+            --gradient-order: linear-gradient(135deg, #f97316, #fb923c);
+            --gradient-yarn: linear-gradient(135deg, #10b981, #34d399);
+            --gradient-fabric: linear-gradient(135deg, #0284c7, #38bdf8);
+            --gradient-delivery: linear-gradient(135deg, #ec4899, #f472b6);
+
+            --theme-header: var(--gradient-order);
+            --theme-active-color: #ea580c;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); margin: 0; padding: 0; }
+
+        .header { 
+            background: var(--theme-header); 
+            color: white; 
+            padding: 16px 32px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            transition: background 0.3s ease;
+        }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        
+        .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav-tab {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .nav-tab:hover { background-color: rgba(255, 255, 255, 0.3); }
+        .nav-tab.active { background-color: white; color: var(--theme-active-color); border-color: white; }
+
+        .tab-content { display: none; padding: 24px; max-width: 1800px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        .main-grid { display: grid; grid-template-columns: 460px minmax(0, 1fr); gap: 24px; }
+        @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.8); margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card-title { margin-top: 0; margin-bottom: 16px; color: var(--primary); font-size: 1.15rem; font-weight: 700; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .full-width { grid-column: span 2; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.85rem; font-weight: 600; color: var(--text-sub); }
+        input, select, textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background-color: #f8fafc; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background-color: #fff; }
+        
+        button { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .btn-success { background-color: var(--success); color: white; width: 100%; }
+        .btn-warning { background-color: var(--warning); color: white; padding: 4px 8px; font-size: 0.8rem; margin-right: 4px; }
+        .btn-danger { background-color: var(--danger); color: white; padding: 4px 8px; font-size: 0.8rem; }
+        .btn-secondary { background-color: #64748b; color: white; }
+        .btn-excel { background-color: #107c41; color: white; padding: 6px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; }
+
+        .search-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; background: #f1f5f9; padding: 12px; border-radius: 8px; align-items: center; }
+        .search-bar input, .search-bar select { flex: 1; min-width: 150px; background: white; }
+
+        .photo-preview { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+        .table-responsive { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; white-space: nowrap; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
+        th { background-color: #f8fafc; color: var(--text-sub); border-bottom: 2px solid var(--border); }
+
+        .roll-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .roll-row input:nth-child(1) { width: 90px; }
+        .roll-row input:nth-child(2) { flex: 1; }
+        
+        .stock-selector {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 320px;
+            overflow-y: auto;
+            background: #f8fafc;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .stock-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            background: #ffffff;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .stock-item:hover { border-color: var(--primary); background-color: #eff6ff; }
+        .stock-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .stock-info { display: flex; flex-direction: column; }
+        .stock-info .roll-no { font-weight: bold; color: var(--text-main); }
+        .stock-info .roll-weight { font-size: 0.8rem; color: var(--primary); font-weight: 600; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 650px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        
+        #loadingOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center;
+            font-size: 1.2rem; font-weight: bold; color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">🔄 正在與 Google 雲端試算表同步資料，請稍候...</div>
+
+    <div class="header">
+        <h1>🏢 德峰針織整合管理系統 (雲端共用版)</h1>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('order-system', this)">📋 訂單系統</button>
+            <button class="nav-tab" onclick="switchTab('yarn-system', this)">📦 紗帳系統</button>
+            <button class="nav-tab" onclick="switchTab('fabric-system', this)">🏭 布庫存每日報表</button>
+            <button class="nav-tab" onclick="switchTab('delivery-system', this)">🚚 出貨單系統</button>
+        </div>
+    </div>
+
+    <!-- ================= 1. 訂單系統模組 ================= -->
+    <div id="order-system" class="tab-content active">
+        <div class="main-grid">
+            <div class="card">
+                <h2 class="card-title"><span id="orderFormTitle">📝 新增訂單資料</span></h2>
+                <form id="orderForm">
+                    <input type="hidden" id="orderEditKey" value="">
+                    <input type="hidden" id="orderPhotoBase64" value="">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>客戶名稱</label>
+                            <input type="text" id="orderCustomerName" list="customerGlobalList" required placeholder="選擇或輸入客戶">
+                        </div>
+                        <div class="form-group">
+                            <label>訂單日期</label>
+                            <input type="date" id="orderDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>預計交期</label>
+                            <input type="date" id="orderDeliveryDate">
+                        </div>
+                        <div class="form-group">
+                            <label>紗種</label>
+                            <input type="text" id="orderYarnType" placeholder="例如：30s 精梳棉">
+                        </div>
+                        <div class="form-group">
+                            <label>布種</label>
+                            <input type="text" id="orderFabricType" required placeholder="例如：雙面單面布">
+                        </div>
+                        <div class="form-group">
+                            <label>幅寬碼重</label>
+                            <input type="text" id="orderWidthWeight" placeholder='例如：60" / 220g'>
+                        </div>
+                        <div class="form-group">
+                            <label>機台吋數</label>
+                            <input type="text" id="orderMachineInch" placeholder='例如：30"'>
+                        </div>
+                        <div class="form-group">
+                            <label>機台針數</label>
+                            <input type="text" id="orderMachineNeedle" placeholder="例如：24G">
+                        </div>
+                        <div class="form-group">
+                            <label>口數</label>
+                            <input type="text" id="orderFeederCount" list="feederOptions" placeholder="選擇或輸入口數">
+                            <datalist id="feederOptions">
+                                <option value="60"></option><option value="88"></option><option value="90"></option><option value="96"></option><option value="108"></option><option value="120">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>數量 (kg)</label>
+                            <input type="number" step="0.1" id="orderQuantity" required placeholder="例如：100">
+                        </div>
+                        <div class="form-group">
+                            <label>顏色</label>
+                            <input type="text" id="orderColor" placeholder="黑色 / 藏青">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>染整廠</label>
+                            <input type="text" id="orderDyeingFactory" placeholder="染廠名稱">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>📷 上傳訂單照片 / 布樣圖</label>
+                            <input type="file" id="orderPhotoInput" accept="image/*" onchange="handlePhotoUpload(event, 'orderPhotoBase64', 'orderImgPreview', 'orderPreviewArea')">
+                            <div id="orderPreviewArea" style="display:none; margin-top:8px; align-items:center; gap:10px;">
+                                <img id="orderImgPreview" class="photo-preview" onclick="viewImage(this.src)">
+                                <button type="button" class="btn-danger" onclick="clearPhoto('orderPhotoBase64', 'orderPhotoInput', 'orderPreviewArea')">刪除照片</button>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>備註說明</label>
+                            <textarea id="orderRemark" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-success" id="orderSubmitBtn">儲存訂單資料</button>
+                    <button type="button" class="btn-secondary" id="orderCancelBtn" style="display:none; width:100%; margin-top:8px;" onclick="resetOrderForm()">取消編輯</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>📊 訂單歷史明細清單</span>
+                    <button class="btn-excel" onclick="exportOrdersToExcel()">📊 匯出 Excel 報表</button>
+                </div>
+                
+                <div class="search-bar">
+                    <span style="font-weight: bold; font-size:0.9rem; color:var(--text-sub);">🔍 訂單查詢：</span>
+                    <select id="orderCustomerFilter" onchange="renderOrderTable()"><option value="">-- 全部客戶 --</option></select>
+                    <input type="text" id="orderSearchInput" placeholder="搜尋訂單編號、布種、紗種、顏色..." oninput="renderOrderTable()">
+                    <button class="btn-secondary" style="padding: 8px 12px; font-size:0.85rem;" onclick="clearOrderSearch()">重置</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>訂單編號</th>
+                                <th>照片</th>
+                                <th>訂單日期</th>
+                                <th>預計交期</th>
+                                <th>客戶名稱</th>
+                                <th>紗種</th>
+                                <th>布種</th>
+                                <th>幅寬碼重</th>
+                                <th>機台/針數/口數</th>
+                                <th>數量(kg)</th>
+                                <th>顏色/染廠</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. 紗帳系統模組 ================= -->
+    <div id="yarn-system" class="tab-content">
+        <div class="main-grid">
+            <div class="card">
+                <h2 class="card-title" id="yarnFormTitle">📝 新增紗帳紀錄</h2>
+                <form id="yarnForm">
+                    <input type="hidden" id="yarnEditKey">
+                    <input type="hidden" id="yarnImageBase64">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>進紗日期</label>
+                            <input type="date" id="yarnRecordDate" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>客戶名稱</label>
+                            <input type="text" id="yarnCustomerName" list="customerGlobalList" required placeholder="輸入客戶名稱">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>紗種</label>
+                            <input type="text" id="yarnType" required placeholder="例如：30s 精梳棉">
+                        </div>
+                        <div class="form-group">
+                            <label>紗商</label>
+                            <input type="text" id="yarnSupplier" placeholder="紗商名稱">
+                        </div>
+                        <div class="form-group">
+                            <label>導紗廠</label>
+                            <input type="text" id="yarnWindingFactory" placeholder="導紗廠名稱">
+                        </div>
+                        <div class="form-group">
+                            <label>件數 (1件=4箱)</label>
+                            <input type="number" step="0.01" id="yarnPackageCount" placeholder="0.00" oninput="calculateBoxes(this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>箱數</label>
+                            <input type="number" step="0.01" id="yarnBoxCount" placeholder="0.00" readonly style="background-color:#e2e8f0;">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>紗量 (kg)</label>
+                            <input type="number" step="0.01" id="yarnWeight" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>📷 單據照片上傳</label>
+                            <input type="file" id="yarnPhotoInput" accept="image/*" onchange="handlePhotoUpload(event, 'yarnImageBase64', 'yarnImgPreview', 'yarnPreviewArea')">
+                            <div id="yarnPreviewArea" style="display:none; margin-top:8px; align-items:center; gap:10px;">
+                                <img id="yarnImgPreview" class="photo-preview" onclick="viewImage(this.src)">
+                                <button type="button" class="btn-danger" onclick="clearPhoto('yarnImageBase64', 'yarnPhotoInput', 'yarnPreviewArea')">刪除照片</button>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>備註</label>
+                            <textarea id="yarnRemark" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-success" id="yarnSubmitBtn">儲存紗帳紀錄</button>
+                    <button type="button" class="btn-secondary" id="yarnCancelBtn" style="display:none; width:100%; margin-top:8px;" onclick="resetYarnForm()">取消編輯</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>📊 紗帳歷史明細清單</span>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-excel" onclick="exportYarnToExcel()">📊 匯出當前 Excel</button>
+                        <button class="btn-excel" style="background-color:#0284c7;" onclick="exportYearlyYarnToExcel()">📅 匯出年度分月報表</button>
+                    </div>
+                </div>
+
+                <div class="search-bar">
+                    <span style="font-weight: bold; font-size:0.9rem; color:var(--text-sub);">🔍 紗帳查詢：</span>
+                    <select id="yarnCustomerFilter" onchange="renderYarnTable()"><option value="">-- 全部客戶 --</option></select>
+                    <input type="month" id="yarnMonthFilter" onchange="renderYarnTable()">
+                    <input type="text" id="yarnSearchInput" placeholder="搜尋紗種、紗商、導紗廠或備註..." oninput="renderYarnTable()">
+                    <button class="btn-secondary" style="padding: 8px 12px; font-size:0.85rem;" onclick="clearYarnSearch()">重置</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>照片</th>
+                                <th>進紗日期</th>
+                                <th>客戶名稱</th>
+                                <th>紗種</th>
+                                <th>紗商/導紗廠</th>
+                                <th>件/箱數</th>
+                                <th>紗量(kg)</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="yarnTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 3. 布庫存每日報表模組 ================= -->
+    <div id="fabric-system" class="tab-content">
+        <div class="main-grid">
+            <div class="card">
+                <h2 class="card-title" id="fabricFormTitle">📝 新增布庫存每日報表</h2>
+                <form id="fabricForm">
+                    <input type="hidden" id="fabricEditKey">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>日期</label>
+                            <input type="date" id="fabricDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>機台編號</label>
+                            <input type="text" id="fabricMachineNo" placeholder="例如：M-01">
+                        </div>
+                        <div class="form-group">
+                            <label>擋車員</label>
+                            <input type="text" id="fabricOperator" placeholder="輸入擋車員姓名">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>客戶名稱</label>
+                            <input type="text" id="fabricCustomerName" list="customerGlobalList" required placeholder="輸入客戶名稱">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>關聯訂單編號 (選填)</label>
+                            <select id="fabricOrderSelect" onchange="fillFabricByOrder()">
+                                <option value="">-- 選擇關聯訂單自動帶入 --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>布種</label>
+                            <input type="text" id="fabricType" required placeholder="例如：單面布">
+                        </div>
+                        <div class="form-group">
+                            <label>紗種</label>
+                            <input type="text" id="fabricYarn" placeholder="例如：C30/1">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>顏色</label>
+                            <input type="text" id="fabricColor" placeholder="例如：黑色">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label>布匹重量明細 (輸入匹號與每卷 kg)</label>
+                            <div id="rollRowsContainer"></div>
+                            <button type="button" class="btn-secondary" style="margin-top:8px; width:100%;" onclick="addRollRow()">＋ 新增一卷</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>總卷數</label>
+                            <input type="text" id="fabricTotalRolls" readonly style="background-color:#e2e8f0; font-weight:bold;">
+                        </div>
+                        <div class="form-group">
+                            <label>總重量 (kg)</label>
+                            <input type="text" id="fabricTotalWeight" readonly style="background-color:#e2e8f0; font-weight:bold; color:var(--primary);">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label>備註</label>
+                            <textarea id="fabricRemark" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-success" id="fabricSubmitBtn">儲存每日報表</button>
+                    <button type="button" class="btn-secondary" id="fabricCancelBtn" style="display:none; width:100%; margin-top:8px;" onclick="resetFabricForm()">取消編輯</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>📊 布庫存每日報表與庫存清單</span>
+                    <button class="btn-excel" onclick="exportFabricToExcel()">📊 匯出 Excel 報表</button>
+                </div>
+
+                <div class="search-bar">
+                    <span style="font-weight: bold; font-size:0.9rem; color:var(--text-sub);">🔍 報表查詢：</span>
+                    <select id="fabricCustomerFilter" onchange="renderFabricTable()"><option value="">-- 全部客戶 --</option></select>
+                    <input type="text" id="fabricSearchInput" placeholder="搜尋機台、擋車員、布種、紗種、顏色..." oninput="renderFabricTable()">
+                    <button class="btn-secondary" style="padding: 8px 12px; font-size:0.85rem;" onclick="clearFabricSearch()">重置</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>機台編號</th>
+                                <th>擋車員</th>
+                                <th>客戶名稱</th>
+                                <th>布種</th>
+                                <th>紗種/顏色</th>
+                                <th>卷數</th>
+                                <th>總重量(kg)</th>
+                                <th>每卷明細 (匹號:重量)</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fabricTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 4. 出貨單系統模組 ================= -->
+    <div id="delivery-system" class="tab-content">
+        <div class="main-grid">
+            <div class="card">
+                <h2 class="card-title">🚚 建立出貨單 (勾選庫存布匹)</h2>
+                <form id="deliveryForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>出貨日期</label>
+                            <input type="date" id="deliveryDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>客戶名稱 (篩選庫存)</label>
+                            <input type="text" id="deliveryCustomerInput" list="customerGlobalList" placeholder="輸入客戶名稱" oninput="renderStockSelector()">
+                        </div>
+                        <div class="form-group">
+                            <label>訂單號碼</label>
+                            <input type="text" id="deliveryOrderNo" placeholder="手動輸入訂單號碼">
+                        </div>
+                        <div class="form-group">
+                            <label>染整廠</label>
+                            <input type="text" id="deliveryDyeingFactory" placeholder="手動輸入染整廠">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>對應訂單選擇 (選填)</label>
+                            <select id="deliveryOrderSelect" onchange="fillDeliveryByOrder()">
+                                <option value="">-- 選擇對應訂單自動帶入 --</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>選擇要出貨的布匹卷數 (可複選)</label>
+                            <div id="stockSelectorContainer" class="stock-selector">
+                                <div style="color:var(--text-sub); grid-column:1/-1; text-align:center; padding:20px;">請先輸入客戶名稱以載入可用庫存布匹</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>已選總卷數</label>
+                            <input type="text" id="deliveryTotalRolls" readonly style="background-color:#e2e8f0; font-weight:bold;">
+                        </div>
+                        <div class="form-group">
+                            <label>已選總重量 (kg)</label>
+                            <input type="text" id="deliveryTotalWeight" readonly style="background-color:#e2e8f0; font-weight:bold; color:var(--success);">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>車牌號碼 / 司機 / 備註</label>
+                            <input type="text" id="deliveryRemark" placeholder="例如：車號 ABC-1234 / 司機老張">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-success">確認出貨並產生出貨單</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>📊 歷史出貨單紀錄</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>出貨單號</th>
+                                <th>出貨日期</th>
+                                <th>客戶名稱</th>
+                                <th>訂單號碼</th>
+                                <th>染整廠</th>
+                                <th>總卷數</th>
+                                <th>總重量(kg)</th>
+                                <th>出貨明細內容</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliveryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共用客戶清單 DataList -->
+    <datalist id="customerGlobalList"></datalist>
+
+    <!-- 圖片預覽 Modal -->
+    <div id="imageModal" class="modal" onclick="closeImageModal()">
+        <div class="modal-content" style="text-align:center; background:transparent;" onclick="event.stopPropagation()">
+            <img id="modalImg" style="max-width:100%; max-height:85vh; border-radius:8px; box-shadow:0 5px 15px rgba(0,0,0,0.5);">
+            <div style="margin-top:10px;"><button class="btn-secondary" onclick="closeImageModal()">關閉預覽</button></div>
+        </div>
+    </div>
+
+    <script>
+        // 對應最新的 Google Apps Script 網頁應用程式網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbx4O8mYBbjd42l9uovCv5j4DR0K-86s1B5RNiIgRHxaCtx7QHXBP3Nl6NjJ_IRnwUKhsg/exec";
+
+        let db = {
+            orderRecords: {},
+            yarnRecords: {},
+            fabricRecords: {},
+            deliveryRecords: {}
+        };
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+        }
+
+        async function loadDataFromCloud() {
+            showLoading(true);
+            try {
+                const response = await fetch(API_URL);
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error("回傳內容非合法 JSON:", text);
+                    alert("雲端後端回傳格式有誤，請確認 Google Apps Script 是否正確輸出 JSON。");
+                    return;
+                }
+
+                if (result && result.status === 'success') {
+                    db.orderRecords = result.data.orderRecords || {};
+                    db.yarnRecords = result.data.yarnRecords || {};
+                    db.fabricRecords = result.data.fabricRecords || {};
+                    db.deliveryRecords = result.data.deliveryRecords || {};
+                }
+            } catch (error) {
+                console.error('載入雲端資料失敗：', error);
+                alert('無法連線至 Google 雲端試算表，請檢查網路狀態或確認 Apps Script 部署權限。');
+            } finally {
+                showLoading(false);
+                initAllRenders();
+            }
+        }
+
+        async function saveDataToCloud(actionType, storeName, key, dataObj) {
+            showLoading(true);
+            try {
+                const payload = {
+                    action: actionType,
+                    store: storeName,
+                    key: key,
+                    data: dataObj
+                };
+
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                await loadDataFromCloud();
+            } catch (error) {
+                console.error('同步至雲端失敗：', error);
+                alert('資料同步到雲端時發生錯誤！');
+                showLoading(false);
+            }
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(btn) btn.classList.add('active');
+
+            const header = document.querySelector('.header');
+            if (tabId === 'order-system') { header.style.background = 'var(--gradient-order)'; }
+            else if (tabId === 'yarn-system') { header.style.background = 'var(--gradient-yarn)'; }
+            else if (tabId === 'fabric-system') { 
+                header.style.background = 'var(--gradient-fabric)'; 
+                updateFabricOrderDropdown();
+            }
+            else if (tabId === 'delivery-system') { 
+                header.style.background = 'var(--gradient-delivery)'; 
+                updateDeliveryOrderDropdown();
+            }
+        }
+
+        function updateGlobalCustomerList() {
+            const customers = new Set();
+            Object.values(db.orderRecords).forEach(i => { if(i.customerName) customers.add(i.customerName); });
+            Object.values(db.yarnRecords).forEach(i => { if(i.customerName) customers.add(i.customerName); });
+            Object.values(db.fabricRecords).forEach(i => { if(i.customerName) customers.add(i.customerName); });
+            Object.values(db.deliveryRecords).forEach(i => { if(i.customerName) customers.add(i.customerName); });
+
+            const datalist = document.getElementById('customerGlobalList');
+            datalist.innerHTML = '';
+            customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                datalist.appendChild(opt);
+            });
+
+            updateDropdownFilter('orderCustomerFilter', customers);
+            updateDropdownFilter('yarnCustomerFilter', customers);
+            updateDropdownFilter('fabricCustomerFilter', customers);
+            updateFabricOrderDropdown();
+            updateDeliveryOrderDropdown();
+        }
+
+        function updateDropdownFilter(elementId, customers) {
+            const select = document.getElementById(elementId);
+            if(!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- 全部客戶 --</option>';
+            customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                if(c === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateFabricOrderDropdown() {
+            const select = document.getElementById('fabricOrderSelect');
+            if(!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- 選擇關聯訂單自動帶入 --</option>';
+            
+            const sortedKeys = Object.keys(db.orderRecords).sort((a,b) => new Date(db.orderRecords[b].date) - new Date(db.orderRecords[a].date));
+            sortedKeys.forEach(key => {
+                const item = db.orderRecords[key];
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `[${item.id}] ${item.customerName || '散客'} - ${item.fabricType || ''} (${item.quantity || 0}kg)`;
+                if(key === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateDeliveryOrderDropdown() {
+            const select = document.getElementById('deliveryOrderSelect');
+            if(!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- 選擇對應訂單自動帶入 --</option>';
+            
+            const sortedKeys = Object.keys(db.orderRecords).sort((a,b) => new Date(db.orderRecords[b].date) - new Date(db.orderRecords[a].date));
+            sortedKeys.forEach(key => {
+                const item = db.orderRecords[key];
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `[${item.id}] ${item.customerName || '散客'} - ${item.fabricType || ''} (${item.quantity || 0}kg)`;
+                if(key === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function fillFabricByOrder() {
+            const orderKey = document.getElementById('fabricOrderSelect').value;
+            if(!orderKey) return;
+            const order = db.orderRecords[orderKey];
+            if(!order) return;
+
+            if(order.customerName) document.getElementById('fabricCustomerName').value = order.customerName;
+            if(order.fabricType) document.getElementById('fabricType').value = order.fabricType;
+            if(order.yarnType) document.getElementById('fabricYarn').value = order.yarnType;
+            if(order.color) document.getElementById('fabricColor').value = order.color;
+        }
+
+        function fillDeliveryByOrder() {
+            const orderKey = document.getElementById('deliveryOrderSelect').value;
+            if(!orderKey) return;
+            const order = db.orderRecords[orderKey];
+            if(!order) return;
+
+            if(order.customerName) {
+                document.getElementById('deliveryCustomerInput').value = order.customerName;
+                renderStockSelector();
+            }
+            if(order.id) document.getElementById('deliveryOrderNo').value = order.id;
+            if(order.dyeingFactory) document.getElementById('deliveryDyeingFactory').value = order.dyeingFactory;
+        }
+
+        function handlePhotoUpload(event, base64Id, imgId, previewAreaId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(base64Id).value = e.target.result;
+                document.getElementById(imgId).src = e.target.result;
+                document.getElementById(previewAreaId).style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearPhoto(base64Id, inputId, previewAreaId) {
+            document.getElementById(base64Id).value = '';
+            document.getElementById(inputId).value = '';
+            document.getElementById(previewAreaId).style.display = 'none';
+        }
+
+        function viewImage(src) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function deleteRecord(storeName, key) {
+            if(confirm('確定要刪除此筆紀錄嗎？')) {
+                saveDataToCloud('delete', storeName, key, null);
+            }
+        }
+
+        // ================= 1. 訂單系統邏輯 =================
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const editKey = document.getElementById('orderEditKey').value;
+            const recordKey = editKey ? editKey : 'Dclient' + new Date().toISOString().slice(2,10).replace(/-/g,'') + Math.floor(100 + Math.random() * 900);
+            
+            const data = {
+                id: recordKey,
+                photo: document.getElementById('orderPhotoBase64').value,
+                date: document.getElementById('orderDate').value,
+                deliveryDate: document.getElementById('orderDeliveryDate').value,
+                customerName: document.getElementById('orderCustomerName').value,
+                yarnType: document.getElementById('orderYarnType').value,
+                fabricType: document.getElementById('orderFabricType').value,
+                widthWeight: document.getElementById('orderWidthWeight').value,
+                machineInch: document.getElementById('orderMachineInch').value,
+                machineNeedle: document.getElementById('orderMachineNeedle').value,
+                feederCount: document.getElementById('orderFeederCount').value,
+                quantity: document.getElementById('orderQuantity').value,
+                color: document.getElementById('orderColor').value,
+                dyeingFactory: document.getElementById('orderDyeingFactory').value,
+                remark: document.getElementById('orderRemark').value
+            };
+
+            db.orderRecords[recordKey] = data;
+            saveDataToCloud('save', 'orderRecords', recordKey, data);
+            resetOrderForm();
+        });
+
+        function editOrder(key) {
+            const item = db.orderRecords[key];
+            if(!item) return;
+            document.getElementById('orderEditKey').value = key;
+            document.getElementById('orderFormTitle').textContent = '📝 編輯訂單資料 (' + key + ')';
+            document.getElementById('orderDate').value = item.date || '';
+            document.getElementById('orderDeliveryDate').value = item.deliveryDate || '';
+            document.getElementById('orderCustomerName').value = item.customerName || '';
+            document.getElementById('orderYarnType').value = item.yarnType || '';
+            document.getElementById('orderFabricType').value = item.fabricType || '';
+            document.getElementById('orderWidthWeight').value = item.widthWeight || '';
+            document.getElementById('orderMachineInch').value = item.machineInch || '';
+            document.getElementById('orderMachineNeedle').value = item.machineNeedle || '';
+            document.getElementById('orderFeederCount').value = item.feederCount || '';
+            document.getElementById('orderQuantity').value = item.quantity || '';
+            document.getElementById('orderColor').value = item.color || '';
+            document.getElementById('orderDyeingFactory').value = item.dyeingFactory || '';
+            document.getElementById('orderRemark').value = item.remark || '';
+            
+            if(item.photo) {
+                document.getElementById('orderPhotoBase64').value = item.photo;
+                document.getElementById('orderImgPreview').src = item.photo;
+                document.getElementById('orderPreviewArea').style.display = 'flex';
+            } else {
+                clearPhoto('orderPhotoBase64', 'orderPhotoInput', 'orderPreviewArea');
+            }
+
+            document.getElementById('orderSubmitBtn').textContent = '更新訂單資料';
+            document.getElementById('orderCancelBtn').style.display = 'block';
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        function resetOrderForm() {
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderEditKey').value = '';
+            document.getElementById('orderFormTitle').textContent = '📝 新增訂單資料';
+            clearPhoto('orderPhotoBase64', 'orderPhotoInput', 'orderPreviewArea');
+            document.getElementById('orderSubmitBtn').textContent = '儲存訂單資料';
+            document.getElementById('orderCancelBtn').style.display = 'none';
+        }
+
+        function clearOrderSearch() {
+            document.getElementById('orderCustomerFilter').value = '';
+            document.getElementById('orderSearchInput').value = '';
+            renderOrderTable();
+        }
+
+        function renderOrderTable() {
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '';
+            const customerFilter = document.getElementById('orderCustomerFilter').value;
+            const searchInput = document.getElementById('orderSearchInput').value.toLowerCase();
+
+            const sortedKeys = Object.keys(db.orderRecords).sort((a,b) => new Date(db.orderRecords[b].date) - new Date(db.orderRecords[a].date));
+
+            sortedKeys.forEach(key => {
+                const item = db.orderRecords[key];
+                if(customerFilter && item.customerName !== customerFilter) return;
+                if(searchInput && !Object.values(item).some(val => String(val).toLowerCase().includes(searchInput))) return;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color:var(--primary);">${item.id}</strong></td>
+                    <td>${item.photo ? `<img src="${item.photo}" class="photo-preview" style="width:35px;height:35px;" onclick="viewImage(this.src)">` : '無照片'}</td>
+                    <td>${item.date || '-'}</td>
+                    <td>${item.deliveryDate || '-'}</td>
+                    <td><strong>${item.customerName || '-'}</strong></td>
+                    <td>${item.yarnType || '-'}</td>
+                    <td>${item.fabricType || '-'}</td>
+                    <td>${item.widthWeight || '-'}</td>
+                    <td>${item.machineInch || '-'}/${item.machineNeedle || '-'}/${item.feederCount || '-'}</td>
+                    <td><strong>${item.quantity || 0} kg</strong></td>
+                    <td>${item.color || ''} / ${item.dyeingFactory || ''}</td>
+                    <td>${item.remark || '-'}</td>
+                    <td>
+                        <button class="btn-warning" onclick="editOrder('${key}')">編輯</button>
+                        <button class="btn-danger" onclick="deleteRecord('orderRecords', '${key}')">刪除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportOrdersToExcel() {
+            const data = Object.values(db.orderRecords).map(item => ({
+                "訂單編號": item.id,
+                "訂單日期": item.date,
+                "預計交期": item.deliveryDate,
+                "客戶名稱": item.customerName,
+                "紗種": item.yarnType,
+                "布種": item.fabricType,
+                "幅寬碼重": item.widthWeight,
+                "機台吋數": item.machineInch,
+                "機台針數": item.machineNeedle,
+                "口數": item.feederCount,
+                "數量(kg)": item.quantity,
+                "顏色": item.color,
+                "染整廠": item.dyeingFactory,
+                "備註": item.remark
+            }));
+            if(data.length === 0) { alert('目前無訂單資料可供匯出！'); return; }
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "訂單總表");
+            XLSX.writeFile(workbook, "德峰針織_訂單管理報表.xlsx");
+        }
+
+
+        // ================= 2. 紗帳系統邏輯 =================
+        function calculateBoxes(packageCount) {
+            const p = parseFloat(packageCount) || 0;
+            document.getElementById('yarnBoxCount').value = (p * 4).toFixed(2);
+        }
+
+        document.getElementById('yarnForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const editKey = document.getElementById('yarnEditKey').value;
+            const recordKey = editKey ? editKey : 'Y' + new Date().getTime();
+
+            const data = {
+                id: recordKey,
+                photo: document.getElementById('yarnImageBase64').value,
+                date: document.getElementById('yarnRecordDate').value,
+                customerName: document.getElementById('yarnCustomerName').value,
+                yarnType: document.getElementById('yarnType').value,
+                supplier: document.getElementById('yarnSupplier').value,
+                windingFactory: document.getElementById('yarnWindingFactory').value,
+                packageCount: document.getElementById('yarnPackageCount').value,
+                boxCount: document.getElementById('yarnBoxCount').value,
+                weight: document.getElementById('yarnWeight').value,
+                remark: document.getElementById('yarnRemark').value
+            };
+
+            db.yarnRecords[recordKey] = data;
+            saveDataToCloud('save', 'yarnRecords', recordKey, data);
+            resetYarnForm();
+        });
+
+        function editYarn(key) {
+            const item = db.yarnRecords[key];
+            if(!item) return;
+            document.getElementById('yarnEditKey').value = key;
+            document.getElementById('yarnFormTitle').textContent = '📝 編輯紗帳紀錄';
+            document.getElementById('yarnRecordDate').value = item.date || '';
+            document.getElementById('yarnCustomerName').value = item.customerName || '';
+            document.getElementById('yarnType').value = item.yarnType || '';
+            document.getElementById('yarnSupplier').value = item.supplier || '';
+            document.getElementById('yarnWindingFactory').value = item.windingFactory || '';
+            document.getElementById('yarnPackageCount').value = item.packageCount || '';
+            document.getElementById('yarnBoxCount').value = item.boxCount || '';
+            document.getElementById('yarnWeight').value = item.weight || '';
+            document.getElementById('yarnRemark').value = item.remark || '';
+
+            if(item.photo) {
+                document.getElementById('yarnImageBase64').value = item.photo;
+                document.getElementById('yarnImgPreview').src = item.photo;
+                document.getElementById('yarnPreviewArea').style.display = 'flex';
+            } else {
+                clearPhoto('yarnImageBase64', 'yarnPhotoInput', 'yarnPreviewArea');
+            }
+
+            document.getElementById('yarnSubmitBtn').textContent = '更新紗帳紀錄';
+            document.getElementById('yarnCancelBtn').style.display = 'block';
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        function resetYarnForm() {
+            document.getElementById('yarnForm').reset();
+            document.getElementById('yarnEditKey').value = '';
+            document.getElementById('yarnFormTitle').textContent = '📝 新增紗帳紀錄';
+            clearPhoto('yarnImageBase64', 'yarnPhotoInput', 'yarnPreviewArea');
+            document.getElementById('yarnSubmitBtn').textContent = '儲存紗帳紀錄';
+            document.getElementById('yarnCancelBtn').style.display = 'none';
+        }
+
+        function clearYarnSearch() {
+            document.getElementById('yarnCustomerFilter').value = '';
+            document.getElementById('yarnMonthFilter').value = '';
+            document.getElementById('yarnSearchInput').value = '';
+            renderYarnTable();
+        }
+
+        function renderYarnTable() {
+            const tbody = document.getElementById('yarnTableBody');
+            tbody.innerHTML = '';
+            const customerFilter = document.getElementById('yarnCustomerFilter').value;
+            const monthFilter = document.getElementById('yarnMonthFilter').value;
+            const searchInput = document.getElementById('yarnSearchInput').value.toLowerCase();
+
+            const sortedKeys = Object.keys(db.yarnRecords).sort((a,b) => new Date(db.yarnRecords[b].date) - new Date(db.yarnRecords[a].date));
+
+            sortedKeys.forEach(key => {
+                const item = db.yarnRecords[key];
+                if(customerFilter && item.customerName !== customerFilter) return;
+                if(monthFilter && (!item.date || !item.date.startsWith(monthFilter))) return;
+                if(searchInput && !Object.values(item).some(val => String(val).toLowerCase().includes(searchInput))) return;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.photo ? `<img src="${item.photo}" class="photo-preview" style="width:35px;height:35px;" onclick="viewImage(this.src)">` : '無'}</td>
+                    <td>${item.date || '-'}</td>
+                    <td><strong>${item.customerName || '-'}</strong></td>
+                    <td>${item.yarnType || '-'}</td>
+                    <td>${item.supplier || '-'} / ${item.windingFactory || '-'}</td>
+                    <td>${item.packageCount || 0}件 / ${item.boxCount || 0}箱</td>
+                    <td><strong>${item.weight || 0} kg</strong></td>
+                    <td>${item.remark || '-'}</td>
+                    <td>
+                        <button class="btn-warning" onclick="editYarn('${key}')">編輯</button>
+                        <button class="btn-danger" onclick="deleteRecord('yarnRecords', '${key}')">刪除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportYarnToExcel() {
+            const data = Object.values(db.yarnRecords).map(item => ({
+                "進紗日期": item.date,
+                "客戶名稱": item.customerName,
+                "紗種": item.yarnType,
+                "紗商": item.supplier,
+                "導紗廠": item.windingFactory,
+                "件數": item.packageCount,
+                "箱數": item.boxCount,
+                "紗量(kg)": item.weight,
+                "備註": item.remark
+            }));
+            if(data.length === 0) { alert('目前無紗帳資料可供匯出！'); return; }
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "紗帳總表");
+            XLSX.writeFile(workbook, "德峰針織_紗帳管理報表.xlsx");
+        }
+
+        function exportYearlyYarnToExcel() {
+            const wb = XLSX.utils.book_new();
+            const months = {};
+            
+            Object.values(db.yarnRecords).forEach(item => {
+                if(!item.date) return;
+                const m = item.date.slice(0, 7);
+                if(!months[m]) months[m] = [];
+                months[m].push({
+                    "進紗日期": item.date,
+                    "客戶名稱": item.customerName,
+                    "紗種": item.yarnType,
+                    "紗商": item.supplier,
+                    "導紗廠": item.windingFactory,
+                    "件數": item.packageCount,
+                    "箱數": item.boxCount,
+                    "紗量(kg)": item.weight,
+                    "備註": item.remark
+                });
+            });
+
+            const sortedMonths = Object.keys(months).sort();
+            if(sortedMonths.length === 0) { alert('無年度分月紗帳資料！'); return; }
+
+            sortedMonths.forEach(m => {
+                const ws = XLSX.utils.json_to_sheet(months[m]);
+                XLSX.utils.book_append_sheet(wb, ws, m);
+            });
+
+            XLSX.writeFile(wb, "德峰針織_年度分月紗帳報表.xlsx");
+        }
+
+
+        // ================= 3. 布庫存每日報表邏輯 =================
+        let rollRowsData = [];
+
+        function initRollRows(rolls = Array.from({length: 10}, () => ({rollNo: '', weight: ''}))) {
+            rollRowsData = rolls;
+            renderRollRows();
+        }
+
+        function renderRollRows() {
+            const container = document.getElementById('rollRowsContainer');
+            container.innerHTML = '';
+            rollRowsData.forEach((r, idx) => {
+                const div = document.createElement('div');
+                div.className = 'roll-row';
+                div.innerHTML = `
+                    <input type="text" placeholder="匹號" value="${r.rollNo || ''}" oninput="updateRollNo(${idx}, this.value)">
+                    <input type="number" step="0.1" placeholder="重量(kg)" value="${r.weight}" oninput="updateRollWeight(${idx}, this.value)">
+                    <button type="button" class="btn-danger" style="padding:6px 10px;" onclick="removeRollRow(${idx})">刪除</button>
+                `;
+                container.appendChild(div);
+            });
+            calculateFabricTotals();
+        }
+
+        function addRollRow() {
+            rollRowsData.push({ rollNo: '', weight: '' });
+            renderRollRows();
+        }
+
+        function removeRollRow(idx) {
+            if(rollRowsData.length <= 1) { alert('至少需保留一卷！'); return; }
+            rollRowsData.splice(idx, 1);
+            renderRollRows();
+        }
+
+        function updateRollNo(idx, val) {
+            rollRowsData[idx].rollNo = val;
+        }
+
+        function updateRollWeight(idx, val) {
+            rollRowsData[idx].weight = val;
+            calculateFabricTotals();
+        }
+
+        function calculateFabricTotals() {
+            let totalRolls = 0;
+            let totalWeight = 0;
+            rollRowsData.forEach(r => {
+                const w = parseFloat(r.weight) || 0;
+                if (w > 0 || (r.rollNo && r.rollNo.trim() !== '')) {
+                    totalRolls++;
+                }
+                totalWeight += w;
+            });
+            document.getElementById('fabricTotalRolls').value = totalRolls + ' 卷';
+            document.getElementById('fabricTotalWeight').value = totalWeight.toFixed(1) + ' kg';
+        }
+
+        document.getElementById('fabricForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const editKey = document.getElementById('fabricEditKey').value;
+            const recordKey = editKey ? editKey : 'F' + new Date().getTime();
+
+            const validRolls = rollRowsData.filter(r => (parseFloat(r.weight) || 0) > 0 || (r.rollNo && r.rollNo.trim() !== ''));
+            if(validRolls.length === 0) {
+                alert('請至少填寫一筆有效的布匹重量或匹號！');
+                return;
+            }
+
+            const rollsDetail = validRolls.map(r => `${r.rollNo || '未命名'}:${parseFloat(r.weight)||0}kg`).join(', ');
+            let totalWeight = 0;
+            validRolls.forEach(r => totalWeight += parseFloat(r.weight) || 0);
+
+            const data = {
+                id: recordKey,
+                date: document.getElementById('fabricDate').value,
+                machineNo: document.getElementById('fabricMachineNo').value,
+                operator: document.getElementById('fabricOperator').value,
+                customerName: document.getElementById('fabricCustomerName').value,
+                fabricType: document.getElementById('fabricType').value,
+                fabricYarn: document.getElementById('fabricYarn').value,
+                fabricColor: document.getElementById('fabricColor').value,
+                rolls: JSON.parse(JSON.stringify(validRolls)),
+                totalRolls: validRolls.length,
+                totalWeight: totalWeight.toFixed(1),
+                rollsDetail: rollsDetail,
+                remark: document.getElementById('fabricRemark').value,
+                status: 'in_stock'
+            };
+
+            db.fabricRecords[recordKey] = data;
+            saveDataToCloud('save', 'fabricRecords', recordKey, data);
+            resetFabricForm();
+        });
+
+        function editFabric(key) {
+            const item = db.fabricRecords[key];
+            if(!item) return;
+            document.getElementById('fabricEditKey').value = key;
+            document.getElementById('fabricFormTitle').textContent = '📝 編輯布庫存每日報表';
+            document.getElementById('fabricDate').value = item.date || '';
+            document.getElementById('fabricMachineNo').value = item.machineNo || '';
+            document.getElementById('fabricOperator').value = item.operator || '';
+            document.getElementById('fabricCustomerName').value = item.customerName || '';
+            document.getElementById('fabricType').value = item.fabricType || '';
+            document.getElementById('fabricYarn').value = item.fabricYarn || '';
+            document.getElementById('fabricColor').value = item.fabricColor || '';
+            document.getElementById('fabricRemark').value = item.remark || '';
+
+            initRollRows(item.rolls && item.rolls.length > 0 ? item.rolls : Array.from({length: 10}, () => ({rollNo: '', weight: ''})));
+
+            document.getElementById('fabricSubmitBtn').textContent = '更新每日報表';
+            document.getElementById('fabricCancelBtn').style.display = 'block';
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        function resetFabricForm() {
+            document.getElementById('fabricForm').reset();
+            document.getElementById('fabricEditKey').value = '';
+            document.getElementById('fabricFormTitle').textContent = '📝 新增布庫存每日報表';
+            document.getElementById('fabricOrderSelect').value = '';
+            initRollRows(Array.from({length: 10}, () => ({rollNo: '', weight: ''})));
+            document.getElementById('fabricSubmitBtn').textContent = '儲存每日報表';
+            document.getElementById('fabricCancelBtn').style.display = 'none';
+        }
+
+        function clearFabricSearch() {
+            document.getElementById('fabricCustomerFilter').value = '';
+            document.getElementById('fabricSearchInput').value = '';
+            renderFabricTable();
+        }
+
+        function renderFabricTable() {
+            const tbody = document.getElementById('fabricTableBody');
+            tbody.innerHTML = '';
+            const customerFilter = document.getElementById('fabricCustomerFilter').value;
+            const searchInput = document.getElementById('fabricSearchInput').value.toLowerCase();
+
+            const sortedKeys = Object.keys(db.fabricRecords).sort((a,b) => new Date(db.fabricRecords[b].date) - new Date(db.fabricRecords[a].date));
+
+            sortedKeys.forEach(key => {
+                const item = db.fabricRecords[key];
+                if(customerFilter && item.customerName !== customerFilter) return;
+                if(searchInput && !Object.values(item).some(val => String(val).toLowerCase().includes(searchInput))) return;
+
+                const tr = document.createElement('tr');
+                let statusBadge = item.status === 'delivered' ? `<span style="color:var(--danger); font-size:0.75rem;">(已出貨)</span>` : `<span style="color:var(--success); font-size:0.75rem;">(庫存中)</span>`;
+                tr.innerHTML = `
+                    <td>${item.date || '-'}</td>
+                    <td>${item.machineNo || '-'}</td>
+                    <td>${item.operator || '-'}</td>
+                    <td><strong>${item.customerName || '-'}</strong></td>
+                    <td>${item.fabricType || '-'}</td>
+                    <td>${item.fabricYarn || '-'}/${item.fabricColor || '-'}</td>
+                    <td>${item.totalRolls || 0} 卷 ${statusBadge}</td>
+                    <td><strong>${item.totalWeight || 0} kg</strong></td>
+                    <td style="white-space:normal; max-width:250px; font-size:0.8rem; color:var(--text-sub);">${item.rollsDetail || '-'}</td>
+                    <td>${item.remark || '-'}</td>
+                    <td>
+                        <button class="btn-warning" onclick="editFabric('${key}')">編輯</button>
+                        <button class="btn-danger" onclick="deleteRecord('fabricRecords', '${key}')">刪除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportFabricToExcel() {
+            const data = Object.values(db.fabricRecords).map(item => ({
+                "日期": item.date,
+                "機台編號": item.machineNo,
+                "擋車員": item.operator,
+                "客戶名稱": item.customerName,
+                "布種": item.fabricType,
+                "紗種": item.fabricYarn,
+                "顏色": item.fabricColor,
+                "總卷數": item.totalRolls,
+                "總重量(kg)": item.totalWeight,
+                "每卷明細": item.rollsDetail,
+                "狀態": item.status === 'delivered' ? '已出貨' : '庫存中',
+                "備註": item.remark
+            }));
+            if(data.length === 0) { alert('目前無布庫存報表可供匯出！'); return; }
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "布庫存每日報表");
+            XLSX.writeFile(workbook, "德峰針織_布庫存每日報表.xlsx");
+        }
+
+
+        // ================= 4. 出貨單系統邏輯 =================
+        function renderStockSelector() {
+            const container = document.getElementById('stockSelectorContainer');
+            const customerInput = document.getElementById('deliveryCustomerInput').value.trim();
+            container.innerHTML = '';
+
+            let availableRolls = [];
+            Object.keys(db.fabricRecords).forEach(fKey => {
+                const fabric = db.fabricRecords[fKey];
+                if(fabric.status === 'delivered') return;
+                if(customerInput && fabric.customerName !== customerInput) return;
+
+                if(fabric.rolls && Array.isArray(fabric.rolls)) {
+                    fabric.rolls.forEach((r, rIdx) => {
+                        availableRolls.push({
+                            fabricKey: fKey,
+                            rollIndex: rIdx,
+                            weight: parseFloat(r.weight) || 0,
+                            customerName: fabric.customerName,
+                            fabricType: fabric.fabricType,
+                            rollNo: r.rollNo || `#${rIdx+1}`
+                        });
+                    });
+                }
+            });
+
+            if(availableRolls.length === 0) {
+                container.innerHTML = `<div style="color:var(--text-sub); grid-column:1/-1; text-align:center; padding:20px;">無符合條件之可用庫存布匹</div>`;
+                calculateDeliveryTotals();
+                return;
+            }
+
+            availableRolls.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'stock-item';
+                div.innerHTML = `
+                    <input type="checkbox" value="${item.fabricKey}_${item.rollIndex}" data-weight="${item.weight}" onchange="calculateDeliveryTotals()">
+                    <div class="stock-info">
+                        <span class="roll-no">${item.customerName} | ${item.fabricType}</span>
+                        <span class="roll-weight">匹號 ${item.rollNo} : ${item.weight} kg</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            calculateDeliveryTotals();
+        }
+
+        function calculateDeliveryTotals() {
+            const checkboxes = document.querySelectorAll('#stockSelectorContainer input[type="checkbox"]:checked');
+            let totalRolls = checkboxes.length;
+            let totalWeight = 0;
+            checkboxes.forEach(cb => {
+                totalWeight += parseFloat(cb.getAttribute('data-weight')) || 0;
+            });
+            document.getElementById('deliveryTotalRolls').value = totalRolls + ' 卷';
+            document.getElementById('deliveryTotalWeight').value = totalWeight.toFixed(1) + ' kg';
+        }
+
+        document.getElementById('deliveryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const checkboxes = document.querySelectorAll('#stockSelectorContainer input[type="checkbox"]:checked');
+            if(checkboxes.length === 0) { alert('請至少勾選一卷要出貨的布匹！'); return; }
+
+            const customerName = document.getElementById('deliveryCustomerInput').value.trim();
+            const orderNo = document.getElementById('deliveryOrderNo').value.trim();
+            const dyeingFactory = document.getElementById('deliveryDyeingFactory').value.trim();
+            const recordKey = 'DEL' + new Date().getTime();
+            
+            let selectedItems = [];
+            let totalWeight = 0;
+
+            checkboxes.forEach(cb => {
+                const [fKey, rIdx] = cb.value.split('_');
+                const fabric = db.fabricRecords[fKey];
+                const rObj = fabric.rolls[rIdx];
+                const weight = parseFloat(rObj.weight) || 0;
+                totalWeight += weight;
+                selectedItems.push({
+                    fabricKey: fKey,
+                    rollIndex: Number(rIdx),
+                    fabricType: fabric.fabricType,
+                    rollNo: rObj.rollNo || `#${Number(rIdx)+1}`,
+                    weight: weight
+                });
+
+                fabric.status = 'delivered';
+                saveDataToCloud('save', 'fabricRecords', fKey, fabric);
+            });
+
+            const data = {
+                id: recordKey,
+                date: document.getElementById('deliveryDate').value,
+                customerName: customerName,
+                orderNo: orderNo,
+                dyeingFactory: dyeingFactory,
+                totalRolls: checkboxes.length,
+                totalWeight: totalWeight.toFixed(1),
+                items: selectedItems,
+                remark: document.getElementById('deliveryRemark').value
+            };
+
+            db.deliveryRecords[recordKey] = data;
+            saveDataToCloud('save', 'deliveryRecords', recordKey, data);
+            document.getElementById('deliveryForm').reset();
+        });
+
+        function renderDeliveryTable() {
+            const tbody = document.getElementById('deliveryTableBody');
+            tbody.innerHTML = '';
+
+            const sortedKeys = Object.keys(db.deliveryRecords).sort((a,b) => new Date(db.deliveryRecords[b].date) - new Date(db.deliveryRecords[a].date));
+
+            sortedKeys.forEach(key => {
+                const item = db.deliveryRecords[key];
+                const itemsSummary = item.items ? item.items.map(i => `${i.fabricType}(${i.rollNo}:${i.weight}kg)`).join(', ') : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color:var(--primary);">${item.id}</strong></td>
+                    <td>${item.date || '-'}</td>
+                    <td><strong>${item.customerName || '-'}</strong></td>
+                    <td>${item.orderNo || '-'}</td>
+                    <td>${item.dyeingFactory || '-'}</td>
+                    <td>${item.totalRolls || 0} 卷</td>
+                    <td><strong>${item.totalWeight || 0} kg</strong></td>
+                    <td style="white-space:normal; max-width:300px; font-size:0.8rem; color:var(--text-sub);">${itemsSummary}</td>
+                    <td>${item.remark || '-'}</td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteDeliveryRecord('${key}')">刪除/還原</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteDeliveryRecord(key) {
+            if(confirm('確定要刪除此出貨單嗎？(將會把對應的布匹庫存狀態還原)')) {
+                const item = db.deliveryRecords[key];
+                if(item && item.items) {
+                    item.items.forEach(i => {
+                        if(db.fabricRecords[i.fabricKey]) {
+                            db.fabricRecords[i.fabricKey].status = 'in_stock';
+                            saveDataToCloud('save', 'fabricRecords', i.fabricKey, db.fabricRecords[i.fabricKey]);
+                        }
+                    });
+                }
+                deleteRecord('deliveryRecords', key);
+            }
+        }
+
+        function initAllRenders() {
+            updateGlobalCustomerList();
+            renderOrderTable();
+            renderYarnTable();
+            renderFabricTable();
+            renderStockSelector();
+            renderDeliveryTable();
+        }
+
+        window.onload = function() {
+            const today = new Date().toISOString().slice(0,10);
+            if(document.getElementById('orderDate')) document.getElementById('orderDate').value = today;
+            if(document.getElementById('yarnRecordDate')) document.getElementById('yarnRecordDate').value = today;
+            if(document.getElementById('fabricDate')) document.getElementById('fabricDate').value = today;
+            if(document.getElementById('deliveryDate')) document.getElementById('deliveryDate').value = today;
+
+            initRollRows(Array.from({length: 10}, () => ({rollNo: '', weight: ''})));
+            loadDataFromCloud();
+        };
+    </script>
+</body>
+</html>
